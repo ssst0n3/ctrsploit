@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -23,4 +24,17 @@ func TestReplaceContent(t *testing.T) {
 	content, err := ioutil.ReadFile("/tmp/replace_test")
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("dest"), content)
+}
+
+func TestReadFirstTwoBytesOfFile(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		file := "/tmp/ctrsploit_TestReadFirstTwoBytesOfFile"
+		assert.NoError(t, os.RemoveAll(file))
+		content := []byte("#!")
+		assert.NoError(t, ioutil.WriteFile(file, content, 0644))
+		header, err := ReadFirstTwoBytesOfFile(file)
+		assert.NoError(t, err)
+		assert.Equal(t, content, header[:])
+		assert.NoError(t, os.RemoveAll(file))
+	})
 }

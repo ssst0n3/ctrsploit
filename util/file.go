@@ -2,7 +2,9 @@ package util
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ssst0n3/awesome_libs/awesome_error"
+	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -38,6 +40,26 @@ func ReplaceContent(path string, source, dest []byte) (err error) {
 	if err != nil {
 		awesome_error.CheckWarning(err)
 		return
+	}
+	return
+}
+
+func ReadFirstTwoBytesOfFile(file string) (header [2]byte, err error) {
+	r, err := os.Open(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
+		awesome_error.CheckErr(err)
+		return
+	}
+	defer r.Close()
+	n, err := io.ReadFull(r, header[:])
+	if err != nil {
+		return
+	}
+	if n < 2 {
+		err = fmt.Errorf("the size of file %s = %d < 2", file, n)
 	}
 	return
 }
