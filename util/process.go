@@ -119,7 +119,7 @@ func GetLastArgInCmdLine(pid int) (lastArg string, err error) {
 }
 
 func IsSheBang(pid int) (shebang string, err error) {
-	cmdline, err := GetCmdline(1)
+	cmdline, err := GetCmdline(pid)
 	if err != nil {
 		awesome_error.CheckErr(err)
 		return
@@ -129,26 +129,31 @@ func IsSheBang(pid int) (shebang string, err error) {
 	}
 	for _, cmd := range cmdline[1:] {
 		path := cmd
-		if !strings.HasPrefix(cmd, "/") {
-			path = fmt.Sprintf("/proc/%d/cwd/%s", pid, path)
-		}
-		header, err2 := ReadFirstTwoBytesOfFile(path)
-		if err2 != nil {
-			err = err2
-			if os.IsNotExist(err) {
-				continue
+		// TODO: what if there is blank in filename?
+		for _, arg := range strings.Split(cmd, " ") {
+			path = arg
+			if !strings.HasPrefix(path, "/") {
+				path = fmt.Sprintf("/proc/%d/cwd/%s", pid, path)
 			}
-			return
-		}
-		if header == [2]byte{'#', '!'} {
-			realpath, err2 := filepath.EvalSymlinks(path)
+			header, err2 := ReadFirstTwoBytesOfFile(path)
 			if err2 != nil {
 				err = err2
-				awesome_error.CheckErr(err)
+				if os.IsNotExist(err) {
+					err = nil
+					continue
+				}
 				return
 			}
-			shebang = realpath
-			return
+			if header == [2]byte{'#', '!'} {
+				realpath, err2 := filepath.EvalSymlinks(path)
+				if err2 != nil {
+					err = err2
+					awesome_error.CheckErr(err)
+					return
+				}
+				shebang = realpath
+				return
+			}
 		}
 	}
 	return

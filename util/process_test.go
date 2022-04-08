@@ -36,7 +36,7 @@ func TestIsSheBang(t *testing.T) {
 	shebang := "/tmp/ctrsploit_TestIsShebang"
 	assert.NoError(t, os.RemoveAll(shebang))
 	assert.NoError(t, ioutil.WriteFile(shebang, []byte("#!/bin/bash\nsleep 10"), 0755))
-	cmd := exec.Command("/bin/bash", "-c", shebang)
+	cmd := exec.Command("/bin/sh", "-c", "sh -c "+shebang)
 	assert.NoError(t, cmd.Start())
 	time.Sleep(time.Second)
 	isSheBang, err := IsSheBang(cmd.Process.Pid)
