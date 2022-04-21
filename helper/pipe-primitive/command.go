@@ -24,8 +24,18 @@ func Command(primitive Primitive, aliases []string, usage string) (cmd *cli.Comm
 				Name:    escapeExpName(primitive),
 				Aliases: []string{"e"},
 				Usage:   fmt.Sprintf("escape by using %s", primitive.GetExpName()),
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name: "LHOST", Aliases: []string{"host"}, Required: true, Usage: "the host of reverse shell",
+					},
+					&cli.StringFlag{
+						Name: "LPORT", Aliases: []string{"port", "p"}, Required: true, Usage: "the port of reverse shell",
+					},
+				},
 				Action: func(context *cli.Context) error {
-					return InvokeEscape(primitive)
+					host := context.String("LHOST")
+					port := context.String("LPORT")
+					return InvokeEscape(primitive, host, port)
 				},
 			},
 			{
