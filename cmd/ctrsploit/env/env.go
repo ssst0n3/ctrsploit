@@ -6,9 +6,9 @@ import (
 )
 
 var Command = &cli.Command{
-	Name: env.SubCommandName,
-	//Aliases: []string{"e"},
-	Usage: "gather information",
+	Name:    env.SubCommandName,
+	Aliases: []string{"e"},
+	Usage:   "gather information",
 	Subcommands: []*cli.Command{
 		WhereCommand,
 		graphdriverCommand,
@@ -18,5 +18,7 @@ var Command = &cli.Command{
 		ApparmorCommand,
 		SelinuxCommand,
 		fdiskCommand,
+		kernelCommand,
+		NamespaceCommand,
 	},
 }
