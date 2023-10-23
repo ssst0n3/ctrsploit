@@ -3,65 +3,86 @@ package capability
 import (
 	"fmt"
 	"github.com/containerd/containerd/pkg/cap"
-	"github.com/ctrsploit/ctrsploit/log"
+	"github.com/ctrsploit/ctrsploit/internal"
 	"github.com/ctrsploit/ctrsploit/pkg/capability"
-	"github.com/ctrsploit/ctrsploit/util"
-	"github.com/fatih/color"
-	"github.com/ssst0n3/awesome_libs"
+	"github.com/ctrsploit/sploit-spec/pkg/colorful"
+	"github.com/ctrsploit/sploit-spec/pkg/result"
+	"github.com/ctrsploit/sploit-spec/pkg/result/item"
 )
 
 const (
-	CommandCapabilityName = "capability"
-	standardCaps          = 0xa80425fb
+	CommandCapabilityName        = "capability"
+	standardCaps          uint64 = 0xa80425fb
 )
 
-func getInfoFromCaps(caps uint64) (info string) {
-	capsParsed, _ := cap.FromBitmap(caps)
-	standard := "default(0xa80425fb)"
-	if caps == standardCaps {
-		standard = color.HiGreenString(" = ") + standard
-	} else {
-		standard = color.HiRedString(" != ") + standard
-	}
-	info += awesome_libs.Format(`
-{.title_caps}
-{.caps}
+type Cap struct {
+	Capabilities item.Long `json:"capabilities"`
+	Equal        item.Bool `json:"equal"`
+	Additional   item.Long `json:"additional"`
+}
 
-{.title_caps_parsed}
-{.caps_parsed}
-`, awesome_libs.Dict{
-		"title_caps":        util.TitleWithFgWhiteBoldUnderline("[caps]"),
-		"caps":              fmt.Sprintf("0x%x%s", caps, standard),
-		"title_caps_parsed": util.TitleWithFgWhiteBoldUnderline("[parsed]"),
-		"caps_parsed":       capsParsed,
-	})
+type Caps struct {
+	Name    result.Title
+	Pid1    Cap `json:"pid1"`
+	Current Cap `json:"current"`
+}
+
+func (c Cap) String() (s string) {
+	s += internal.Print(c.Capabilities, c.Equal)
+	if !c.Equal.Result {
+		s += internal.Print(c.Additional)
+	}
+	return
+}
+
+func (c Caps) String() (s string) {
+	s += internal.Print(c.Name)
+	s += c.Pid1.String() + "\n"
+	s += c.Current.String() + "\n"
+	return
+}
+
+func getInfoFromCaps(caps uint64, subtitle string) (c Cap) {
+	c.Capabilities = item.Long{
+		Name:   fmt.Sprintf("[Capabilities (%s)]", subtitle),
+		Result: fmt.Sprintf("0x%x", caps),
+	}
+	c.Equal = item.Bool{
+		Name:        "Equal to Docker's Default capability",
+		Description: fmt.Sprintf("0x%x", caps),
+		Result:      caps == standardCaps,
+	}
 	if caps != standardCaps {
-		capsDiff, _ := cap.FromBitmap(caps - standardCaps)
-		info += "\n" + util.TitleWithFgWhiteBoldUnderline("[Additional Capabilities]")
-		info += color.HiRedString(fmt.Sprintf("\n%q", capsDiff))
+		capsDiff, _ := cap.FromBitmap(caps & (^standardCaps))
+		c.Additional = item.Long{
+			Name:        "[Additional]",
+			Description: "",
+			Result:      colorful.O.Danger(fmt.Sprintf("%q", capsDiff)),
+		}
 	}
-
 	return
 }
 
 func Capability() (err error) {
-	info := "===========Capability========="
-	{ // for pid 1
-		caps, err := capability.GetPid1Capability()
-		if err != nil {
-			return err
-		}
-		info += "\n" + util.TitleWithBgWhiteBold("pid 1") + getInfoFromCaps(caps)
+	caps, err := capability.GetPid1Capability()
+	if err != nil {
+		return err
 	}
-	info += "\n"
-	{
-		// for current process
-		caps, err := capability.GetCurrentCapability()
-		if err != nil {
-			return err
-		}
-		info += "\n" + util.TitleWithBgWhiteBold("current process") + getInfoFromCaps(caps)
+	pid1 := getInfoFromCaps(caps, "pid1")
+
+	caps, err = capability.GetCurrentCapability()
+	if err != nil {
+		return err
 	}
-	log.Logger.Info(info)
+	current := getInfoFromCaps(caps, "current")
+
+	c := Caps{
+		Name: result.Title{
+			Name: "Capability",
+		},
+		Pid1:    pid1,
+		Current: current,
+	}
+	fmt.Println(c)
 	return
 }

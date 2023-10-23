@@ -1,7 +1,7 @@
 package namespace
 
 import (
-	"github.com/ctrsploit/ctrsploit/log"
+	"github.com/ctrsploit/ctrsploit/internal/log"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -20,7 +20,7 @@ func TestInoArbitrator_IsNetworkNamespaceInoBetweenProcInoList(t *testing.T) {
 	netns := Namespace{
 		Name:        "net",
 		Path:        "/proc/self/ns/net",
-		Type:        TypeNamespaceTypeNetwork,
+		Type:        TypeNetwork,
 		InodeNumber: 4026532726,
 	}
 	host := inoArbitrator.IsNetworkNamespaceInoBetweenProcInoList(netns)
@@ -42,7 +42,7 @@ func TestInoArbitrator_IsNetworkNamespaceInoBetweenTwoAdjacentMissingIno(t *test
 	netns := Namespace{
 		Name:        "net",
 		Path:        "/proc/self/ns/net",
-		Type:        TypeNamespaceTypeNetwork,
+		Type:        TypeNetwork,
 		InodeNumber: 4026532726,
 	}
 	host := inoArbitrator.IsNetworkNamespaceInoBetweenTwoAdjacentMissingIno(netns)

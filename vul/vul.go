@@ -1,11 +1,16 @@
 package vul
 
 import (
-	"github.com/ctrsploit/ctrsploit/log"
+	"github.com/ctrsploit/ctrsploit/internal/log"
 	"github.com/ctrsploit/ctrsploit/prerequisite"
+	"github.com/ctrsploit/ctrsploit/prerequisite/vulnerability"
 )
 
 type Vulnerability interface {
+	// GetName returns a one word name; may be used as command name
+	GetName() string
+	// GetDescription return usage
+	GetDescription() string
 	Info()
 	// CheckSec whether vulnerability exists
 	CheckSec() (bool, error)
@@ -23,6 +28,14 @@ type BaseVulnerability struct {
 	CheckSecHaveRan          bool                       `json:"-"`
 	CheckSecPrerequisites    prerequisite.Prerequisites `json:"-"`
 	ExploitablePrerequisites prerequisite.Prerequisites `json:"-"`
+}
+
+func (v *BaseVulnerability) GetName() string {
+	return v.Name
+}
+
+func (v *BaseVulnerability) GetDescription() string {
+	return v.Description
 }
 
 func (v *BaseVulnerability) Info() {
@@ -44,7 +57,7 @@ func (v *BaseVulnerability) Output() {
 }
 
 func (v *BaseVulnerability) Exploitable(vulnerabilityExists bool) (satisfied bool, err error) {
-	prerequisiteVulnerabilityExists := prerequisite.VulnerabilityExists(vulnerabilityExists)
+	prerequisiteVulnerabilityExists := vulnerability.Exists(vulnerabilityExists)
 	v.ExploitablePrerequisites = append([]prerequisite.Interface{prerequisiteVulnerabilityExists}, v.ExploitablePrerequisites...)
 	satisfied, err = v.ExploitablePrerequisites.Satisfied()
 	if err != nil {

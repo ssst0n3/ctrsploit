@@ -1,57 +1,104 @@
 package graphdriver
 
 import (
-	"github.com/ctrsploit/ctrsploit/log"
+	"fmt"
+	"github.com/ctrsploit/ctrsploit/internal"
+	"github.com/ctrsploit/ctrsploit/pkg/graphdriver"
 	"github.com/ctrsploit/ctrsploit/pkg/graphdriver/devicemapper"
 	"github.com/ctrsploit/ctrsploit/pkg/graphdriver/overlay"
-	"github.com/ctrsploit/ctrsploit/util"
-	"fmt"
-	"github.com/fatih/color"
+	"github.com/ctrsploit/sploit-spec/pkg/result"
+	"github.com/ctrsploit/sploit-spec/pkg/result/item"
 )
 
-const CommandGraphdriverName = "graphdriver"
+const CommandName = "graphdriver"
 
-func Overlay() (err error) {
-	o := &overlay.Overlay{}
-	err = o.Init()
-	if err != nil {
-		return
-	}
-	info := fmt.Sprintf("===========Overlay=========\nOverlay enabled: %v\n", util.ColorfulTickOrBallot(o.Loaded))
-	if o.Loaded {
-		info += fmt.Sprintf("Overlay used: %v\n", util.ColorfulTickOrBallot(o.Used))
-		if o.Used {
-			info += fmt.Sprintf("The number of overlayfs mounted: %v (equal to the number of containers)", color.HiGreenString(fmt.Sprintf("%d", o.Number)))
-			if len(o.HostPath) > 0 {
-				info += fmt.Sprintf("\nThe host path of container's rootfs: %s", color.HiGreenString(o.HostPath))
-			}
-			info += "\n"
+type Result struct {
+	Name     result.Title
+	Enabled  item.Bool `json:"enabled"`
+	Used     item.Bool `json:"used"`
+	Number   item.Long `json:"number"`
+	HostPath item.Long `json:"host_path"`
+}
+
+func (r Result) String() (s string) {
+	s += internal.Print(r.Name, r.Enabled)
+	if r.Enabled.Result {
+		s += internal.Print(r.Used)
+		if r.Used.Result {
+			s += internal.Print(r.Number, r.HostPath)
 		}
 	}
-	log.Logger.Info(info)
 	return
 }
 
+func Overlay() (err error) {
+	return graphDriver("Overlay", &overlay.Overlay{})
+}
+
 func DeviceMapper() (err error) {
-	d := &devicemapper.DeviceMapper{}
-	err = d.Init()
+	return graphDriver("DeviceMapper", &devicemapper.DeviceMapper{})
+}
+
+func graphDriver(name string, g graphdriver.Interface) (err error) {
+	err = g.Init()
 	if err != nil {
 		return
 	}
-	info := fmt.Sprintf("===========DeviceMapper=========\nDeviceMapper enabled: %v\n", util.ColorfulTickOrBallot(d.Loaded))
-	if d.Loaded {
-		info += fmt.Sprintf("DeviceMapper used: %v\n", util.ColorfulTickOrBallot(d.Used))
-		if d.Used {
-			info += fmt.Sprintf("The number of devicemapper used in running container: %v", color.HiGreenString(fmt.Sprintf("%d", d.NumberOfDmUsedInRunningContainer)))
-			if d.NumberOfDmUsedInRunningContainer > 0 {
-				info += " ( =(count(running containers)+1) )"
-				if len(d.HostPath) > 0 {
-					info += fmt.Sprintf("\nThe host path of container's rootfs: %s", color.HiGreenString(d.HostPath))
+
+	enabled, err := g.IsEnabled()
+	if err != nil {
+		return
+	}
+
+	r := Result{
+		Name: result.Title{
+			Name: name,
+		},
+		Enabled: item.Bool{
+			Name:        "Enabled",
+			Description: "",
+			Result:      enabled,
+		},
+	}
+	var used bool
+	var number int
+	var hostPath string
+	if r.Enabled.Result {
+		used, err = g.IsUsed()
+		if err != nil {
+			return
+		}
+		r.Used = item.Bool{
+			Name:        "Used",
+			Description: "",
+			Result:      used,
+		}
+		if r.Used.Result {
+			number, err = g.Number()
+			if err != nil {
+				return
+			}
+			// number = 0 means /sys/module/seccomp/refcnt not exists
+			if number > 0 {
+				r.Number = item.Long{
+					Name:        "The number of graph driver mounted",
+					Description: "equal to the number of containers",
+					Result:      fmt.Sprintf("%d", number),
 				}
 			}
-			info += "\n"
+
+			hostPath, err = g.HostPathOfCtrRootfs()
+			if err != nil {
+				return
+			}
+			r.HostPath = item.Long{
+				Name:        "The host path of container's rootfs",
+				Description: "",
+				Result:      hostPath,
+			}
 		}
 	}
-	log.Logger.Info(info)
+
+	fmt.Println(r)
 	return
 }

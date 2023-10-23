@@ -2,20 +2,19 @@ package main
 
 import (
 	"github.com/ctrsploit/ctrsploit/cmd/ctrsploit/checksec"
+	"github.com/ctrsploit/ctrsploit/internal"
 	"github.com/ssst0n3/awesome_libs/awesome_error"
-	"github.com/urfave/cli/v2"
 	"os"
 )
 
+const (
+	name = `ctrsploit/checksec`
+)
+
 func main() {
-	app := &cli.App{
-		Name:     name,
-		Usage:    usage,
-		Action:   checksec.Command.Action,
-		Commands: checksec.Command.Subcommands,
-		Flags:    checksec.Command.Flags,
-		Before:   checksec.Command.Before,
-	}
+	app := internal.Command2App(checksec.Command)
+	app.Name = name
+	internal.InstallGlobalFlags(app)
 	err := app.Run(os.Args)
 	if err != nil {
 		awesome_error.CheckFatal(err)

@@ -16,6 +16,7 @@ var (
 		"acpi",
 		"kcore",
 		"timer_list",
+		"asound",
 	}
 )
 
@@ -43,29 +44,36 @@ func ListNamespaceDir(path string) (namespaceInoMap map[string]int, names []stri
 	return
 }
 
-// ReadInodeNumberMapUnderProc return map[path]ino by walk procfs, pass number dir
+// ReadInodeNumberMapUnderProc return map[path]ino by walk procfs, skip /proc/pid
 func ReadInodeNumberMapUnderProc(proc string) (inoMap map[string]int, err error) {
 	inoMap = make(map[string]int)
 	err = filepath.Walk(proc, func(path string, info fs.FileInfo, err error) error {
+		//log.Logger.Debugf("walk %s", path)
 		if err != nil {
+			//awesome_error.CheckDebug(err)
 			return nil
 		}
 		if path == proc {
 			return nil
 		}
+		if path == filepath.Join(proc, "sys") && info.IsDir() {
+			return filepath.SkipDir
+		}
 		for _, p := range maskOrReadonlyPath {
 			if path == filepath.Join(proc, p) {
-				return nil
+				if info.IsDir() {
+					return filepath.SkipDir
+				} else {
+					return nil
+				}
 			}
 		}
-		if _, err := strconv.Atoi(info.Name()); filepath.Join(proc, info.Name()) == path && err == nil {
+		if _, err := strconv.Atoi(info.Name()); err == nil && filepath.Join(proc, info.Name()) == path && info.IsDir() {
 			return filepath.SkipDir
 		}
+		//log.Logger.Debugf("stat %s", path)
 		ino := int(info.Sys().(*syscall.Stat_t).Ino)
 		inoMap[path] = ino
-		if path == filepath.Join(proc, "sys") {
-			return filepath.SkipDir
-		}
 		return nil
 	})
 	if err != nil {
@@ -80,6 +88,7 @@ func ReadInodeNumberListUnderProc(proc string) (inoList []int, err error) {
 	if err != nil {
 		return
 	}
+	//log.Logger.Debugf("ino map under /proc: %+v", inoMap)
 	for _, ino := range inoMap {
 		inoList = append(inoList, ino)
 	}
